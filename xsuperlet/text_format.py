@@ -1,0 +1,12 @@
+# Text format constants
+HEDR = '\033[95m'
+ENDC = '\033[0m'
+ERRR = '\033[91m'
+GREN = '\033[92m'
+WARN = '\033[93m'
+BLUE = '\033[94m'
+PINK = '\033[95m'
+CYAN = '\033[96m'
+BOLD = '\033[1m'
+UNDL = '\033[4m'
+RTRN = '\033[F'
