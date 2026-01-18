@@ -9,9 +9,9 @@ Uses Light curve simulation based on Timmer & Koenig (1995) and Emmanoulopoulos 
 
 Author: Thomas Hodd
 
-Date - 25th November 2025
+Date - 18th January 2026
 
-Version - 1.1
+Version - 1.2
 """
 # System packages
 import os

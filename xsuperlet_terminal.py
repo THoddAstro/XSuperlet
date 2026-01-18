@@ -25,9 +25,9 @@ Options
 
 Author: Thomas Hodd
 
-Date - 25th November 2025
+Date - 18th January 2026
 
-Version - 1.0.2
+Version - 1.0.3
 """
 
 # Check for command-line arguments
@@ -1241,7 +1241,7 @@ if __name__ == "__main__":
     print(f"({round(t.time() - loadstart, 2)}s)")
     print(f"\n{BLUE}"
           "========================\n"
-          "XSuperlet         v1.0.2\n"
+          "XSuperlet         v1.0.3\n"
           "========================\n"
           f"{ENDC}")
 
