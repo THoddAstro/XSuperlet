@@ -713,24 +713,23 @@ class Xsuperlet:
 
     @_help
     @_validate_lc
-    def wwz_transform(self, lc_code: int, *wwz_params) -> None:
+    def wwz_transform(self, lc_code: int, f_bins: int, t_bin: int) -> None:
         """
         Calculates the weighted wavelet Z-transform of the specified light curve.
 
         :param lc_code: Light curve identifier
-        :param wwz_params: WWZ transform parameters
+        :param f_bins: Number of frequency bins
+        :param t_bin: Time bin size in time unit (default ks)
         :return: None
         """
         # Get WT object and WWZ parameters
         wt: WaveTransform = self.__get_wave_transform_object(lc_code)
-        wwz_params = list(wwz_params)
-        wwz_params = self.__force_list_size(wwz_params, 2)
-        wwz_params[0] = self.__validate_default_type(int, wwz_params[0], "frequency_bins", WWZ_DEFAULT_FREQS)
-        wwz_params[1] = self.__validate_default_type(int, wwz_params[1], "time_bin_size", WWZ_DEFAULT_TBIN)
+        f_bins = self.__validate_default_type(int, f_bins, "frequency_bins", WWZ_DEFAULT_FREQS)
+        t_bin = self.__validate_default_type(int, t_bin, "time_bin_size", WWZ_DEFAULT_TBIN)
 
         # Do WWZ
         print(f"Calculating weighted wavelet Z-transform for light curve {lc_code} ({wt.filename})...")
-        wt.calculate_wwz_transform ([int(p) for p in wwz_params])
+        wt.calculate_wwz_transform([f_bins, t_bin])
 
     @_help
     @_validate_lc

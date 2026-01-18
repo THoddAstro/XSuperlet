@@ -269,6 +269,8 @@ class WaveTransform:
         self.wwz_significance = []
         self.wwa = None
         self.wwa_significance = []
+        self.wwz_freq_grid = None
+        self.wwz_time_grid = None
 
         # SLT
         self.slt_params = [3, 1, 30]
@@ -433,11 +435,11 @@ class WaveTransform:
         wwz = WWZ(self.times * self.__unit, self.signal)
 
         # Create time and frequency grids
-        freq = wwz.get_freq(self.__unit / self.frequencies.max(), self.__unit / self.frequencies.min(), wwz_params[0])
-        tau = wwz.get_tau(self.times.min(), self.times.max(), wwz_params[1])
+        self.wwz_freq_grid = wwz.get_freq(self.__unit / self.frequencies.max(), self.__unit / self.frequencies.min(), wwz_params[0])
+        self.wwz_time_grid = wwz.get_tau(self.times.min(), self.times.max(), wwz_params[1])
 
-        wwz.set_freq(freq)
-        wwz.set_tau(tau)
+        wwz.set_freq(self.wwz_freq_grid)
+        wwz.set_tau(self.wwz_time_grid)
 
         # Calculate the WWZ transform
         wwz.transform(verbose=2)
@@ -860,21 +862,28 @@ class WaveTransform:
         :return: None
         """
         # Setup pcolormesh edges
+        if transform in ["WWZ", "WWA"]:
+            times = self.wwz_time_grid
+            freqs = self.wwz_freq_grid
+        else:
+            times = self.times * self.__unit
+            freqs = self.frequencies * (1 / self.__unit)
+
         # Time edges
-        d_t = np.diff(self.times).mean()
+        d_t = np.diff(times * (1 / self.__unit)).mean()
         time_edges = np.concatenate([
-            [self.times[0] * self.__unit * self.__t_unit - d_t / 2],
-            self.times[:-1] * self.__unit * self.__t_unit + d_t / 2,
-            [self.times[-1] * self.__unit * self.__t_unit + d_t / 2]])
+            [times[0] * self.__t_unit - d_t / 2],
+            times[:-1] * self.__t_unit + d_t / 2,
+            [times[-1] * self.__t_unit + d_t / 2]])
 
         # Frequency edges, either log or linear space
-        if round(self.frequencies[1] - self.frequencies[0], 5) != round(self.frequencies[-1] - self.frequencies[-2], 5):
-            freq_edges = np.geomspace(self.frequencies[0], self.frequencies[-1], len(self.frequencies) + 1)
+        if round(freqs[1] - freqs[0], 5) != round(freqs[-1] - freqs[-2], 5):
+            freq_edges = np.geomspace(freqs[0], freqs[-1], len(freqs) + 1)
         else:
-            d_f = np.diff(self.frequencies).mean()
-            freq_edges = np.concatenate([[(self.frequencies[0] * (1 / self.__unit) * self.__f_unit) - d_f / 2],
-                                         (self.frequencies[:-1] * (1 / self.__unit) * self.__f_unit) + d_f / 2,
-                                         [(self.frequencies[-1] * (1 / self.__unit) * self.__f_unit) + d_f / 2]])
+            d_f = np.diff(freqs).mean()
+            freq_edges = np.concatenate([[(freqs[0] * self.__f_unit) - d_f / 2],
+                                         (freqs[:-1] * self.__f_unit) + d_f / 2,
+                                         [(freqs[-1] * self.__f_unit) + d_f / 2]])
 
         if axis is None:
             # Initialise figure
@@ -898,12 +907,17 @@ class WaveTransform:
         if transform_data is None:
             return None
 
+        # if transform in ["WWZ", "WWA"]:
+        #     temp_arr = np.zeros((transform_data.shape[0], transform_data.shape[1] + 1))
+        #     temp_arr[:, :transform_data.shape[1]] = transform_data
+        #     transform_data = temp_arr
+
         # Ignore masked region
         if mask_region is not None:
             mask = np.ones(transform_data.shape, dtype=bool)
             # Convert from user entered value to index of frequency list
-            minimum = closest_index(self.frequencies, mask_region[0])
-            maximum = closest_index(self.frequencies, mask_region[1])
+            minimum = closest_index(freqs, mask_region[0])
+            maximum = closest_index(freqs, mask_region[1])
             print(f"Mask indices: {minimum}, {maximum}")
             # Set the region to ignore to False
             mask[minimum:maximum, :] = False
@@ -921,7 +935,7 @@ class WaveTransform:
         # Plot gaps, if found
         if self.__gaps is not None:
             for gap in self.__gaps:
-                ax.fill_betweenx([self.frequencies[0] * (1 / self.__unit) * self.__f_unit, self.frequencies[-1] * (1 / self.__unit) * self.__f_unit],
+                ax.fill_betweenx([freqs[0] * self.__f_unit, freqs[-1] * self.__f_unit],
                                  gap[0], gap[1], color=gap_fill[0], alpha=gap_fill[1])
                 plt.plot([self.lc.time[0] * self.__t_unit, self.lc.time[-1] * self.__t_unit],
                          [self.__gap_frequency, self.__gap_frequency], color="w", linestyle="dashed", linewidth=1)
@@ -1049,7 +1063,7 @@ class WaveTransform:
 
         # Set axes limits
         ax.set_ylim(0.0, max(power) * 1.05)
-        ax.set_xlim(self.frequencies[0], self.frequencies[-1])
+        ax.set_xlim(freqs[0], self.frequencies[-1])
 
         # Find peaks
         # TODO: Duplicated code fragment
