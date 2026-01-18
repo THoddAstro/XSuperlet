@@ -122,6 +122,7 @@ DEBUG_GP = config.getboolean("SETTINGS", "SHOW_GP_RESULT")
 GAP_FILL = ast.literal_eval(config.get("SETTINGS", "GAP_FILL_COLOUR"))
 COI_FILL = ast.literal_eval(config.get("SETTINGS", "COI_FILL_COLOUR"))
 SIM_TYPE = config.get("SETTINGS", "SIMULATION_TYPE")
+WWZ_VERBOSE = config.getint("SETTINGS", "WWZ_VERBOSE")
 
 # Suppress RuntimeWarnings
 if config.getboolean("SETTINGS", "SUPPRESS_WARNINGS"):
@@ -364,7 +365,7 @@ class Xsuperlet:
         with open(file_name, "r") as f:
             print(f"Loaded command file: {file_name}\n{PINK}----------{ENDC}")
             for line in f.readlines():
-                print(f"{PINK}>>> {line}{ENDC}")
+                print(f"\n{PINK}>>> {line.strip("\n")}{ENDC}")
                 # For each line split off the command and params
                 comm, params = line.split()[0], line.split()[1:]
                 # Execute first matching command
@@ -729,7 +730,7 @@ class Xsuperlet:
 
         # Do WWZ
         print(f"Calculating weighted wavelet Z-transform for light curve {lc_code} ({wt.filename})...")
-        wt.calculate_wwz_transform([f_bins, t_bin])
+        wt.calculate_wwz_transform([f_bins, t_bin], WWZ_VERBOSE)
 
     @_help
     @_validate_lc

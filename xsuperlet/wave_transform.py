@@ -148,6 +148,7 @@ def move_down(n: int):
     """
     if n > 0:
         sys.stdout.write(f"\x1b[{n}B")
+
 def clear_line():
     """
     Clear current line in stdout.
@@ -264,13 +265,13 @@ class WaveTransform:
         self.cwt_significance = []
 
         # WWZ
+        self.wwz_freq_grid = None
+        self.wwz_time_grid = None
         self.wwz_params = [1000, 1000]
         self.wwz = None
         self.wwz_significance = []
         self.wwa = None
         self.wwa_significance = []
-        self.wwz_freq_grid = None
-        self.wwz_time_grid = None
 
         # SLT
         self.slt_params = [3, 1, 30]
@@ -420,16 +421,22 @@ class WaveTransform:
         end = t.time()
         print(f"{GREN}CWT calculated in {end - start:.2f} seconds{ENDC}")
 
-    def calculate_wwz_transform(self, wwz_params: list[int | float] = None) -> None:
+    def calculate_wwz_transform(self, wwz_params: list[int | float] = None, verbosity: int = 0) -> None:
         """
         (Re)calculates the weighted wavelet Z-transform of the signal.
-        :return:
+
+        :param wwz_params: Change the WWZ transform number of frequency bins or time bin size
+        :param verbosity: Verbosity level - 0 = none, 1 = some, 2 = all
+        :return: None
         """
         start = t.time()
 
         # Determine if new parameters have been given
         if wwz_params is not None:
             self.wwz_params = wwz_params
+
+        if verbosity == 0:
+            sys.stdout = open(os.devnull, 'w')
 
         # Initialise WWZ object
         wwz = WWZ(self.times * self.__unit, self.signal)
@@ -438,11 +445,14 @@ class WaveTransform:
         self.wwz_freq_grid = wwz.get_freq(self.__unit / self.frequencies.max(), self.__unit / self.frequencies.min(), wwz_params[0])
         self.wwz_time_grid = wwz.get_tau(self.times.min(), self.times.max(), wwz_params[1])
 
-        wwz.set_freq(self.wwz_freq_grid)
-        wwz.set_tau(self.wwz_time_grid)
+        if verbosity == 0:
+            sys.stdout = sys.__stdout__
+
+        wwz.set_freq(self.wwz_freq_grid, verbose=verbosity)
+        wwz.set_tau(self.wwz_time_grid, verbose=verbosity)
 
         # Calculate the WWZ transform
-        wwz.transform(verbose=2)
+        wwz.transform(verbose=verbosity)
 
         # Save WWZ and WWA
         self.wwz = wwz.wwz.transpose()
@@ -906,11 +916,6 @@ class WaveTransform:
         # If transform doesn't exist, abort
         if transform_data is None:
             return None
-
-        # if transform in ["WWZ", "WWA"]:
-        #     temp_arr = np.zeros((transform_data.shape[0], transform_data.shape[1] + 1))
-        #     temp_arr[:, :transform_data.shape[1]] = transform_data
-        #     transform_data = temp_arr
 
         # Ignore masked region
         if mask_region is not None:
