@@ -8,8 +8,8 @@ XSuperlet runs on Python 3.12 and offers several classes for wavelet analysis re
 
 
 # Dependencies
-- Python 3.12
-- `numpy 1.x`
+- Python 3.12 or higher
+- `numpy`
 - `scipy`
 - `matplotlib`
 - `sklearn`
