@@ -75,6 +75,7 @@ import configparser
 import pathlib
 import warnings
 import traceback
+import functools
 from datetime import datetime as dt
 
 import numpy as np
@@ -181,6 +182,7 @@ class Xsuperlet:
 
             "coi": self.calculate_coi,
             "gaps": self.find_gaps,
+            "lc-frequency": self.set_freq_from_lc,
 
             "fslice": self.vertical_slice,
             "trace-frequency": self.trace_frequency_peaks,
@@ -292,6 +294,7 @@ class Xsuperlet:
 
     @staticmethod
     def _validate_lc(func: Callable) -> Callable | None:
+        @functools.wraps(func)
         def __validation_wrapper(self, lc_code: int, *args, **kwargs) -> Callable | None:
             """
             Validates the light curve ID sent to a function before continuing (if valid)
@@ -314,10 +317,6 @@ class Xsuperlet:
             else:
                 print(f"{ERRR} '{lc_code}' is not a valid light curve ID{ENDC}")
                 return None
-
-        # Ensure the real function metadata is passed back, not the wrapper's name and docstring
-        __validation_wrapper.__name__ = func.__name__
-        __validation_wrapper.__doc__ = func.__doc__
         return __validation_wrapper
 
     @staticmethod
@@ -1028,6 +1027,30 @@ class Xsuperlet:
 
     @_help
     @_validate_lc
+    def set_freq_from_lc(self, lc_code: int, scale_factor: int | float = None) -> None:
+        """
+        Automatically sets the frequency range based on the given light curve.
+
+        :param lc_code: Light curve identifier
+        :param scale_factor: Size of range, 2 is default range size
+        :return: None
+        """
+        # Get WT and LightCurve objects
+        wt: WaveTransform = self.__get_wave_transform_object(lc_code)
+        lcurve: LightCurve = wt.lc
+
+        # Retrieve scale factor
+        scale_factor = self.__validate_default_type(float, scale_factor, "scale_factor", 2.0)
+
+        # Calculate frequency range (using the light curve's period in s)
+        min_freq = (2 / lcurve.length)
+        max_freq = min_freq * 10 * scale_factor
+
+        print(f"{BLUE}Setting frequency range to {min_freq:.2G} - {max_freq:.2G} Hz{ENDC}")
+        self.set_freq_range(min_freq, max_freq, len(self.__frequency_grid))
+
+    @_help
+    @_validate_lc
     def plot_scalogram(self, lc_code: int, transform: str = None, v_max = None, v_min = None, mask_max = None, mask_min = None) -> None:
         """
         Plots a scalogram for the specified transform and light curve.
@@ -1327,7 +1350,7 @@ if __name__ == "__main__":
                 print(f"?\nTry: {', '.join(matching_commands)}")
 
             # Command does not exist, send it to the shell if possible
-            # TODO: Tidy this up
+            # TODO: Tidy this up (Curses)
             elif UNIX:
                 # cd command: Move directories
                 if com == "cd":

@@ -869,7 +869,7 @@ class WaveTransform:
         :param coi_fill: Colour and alpha value of cone of influence
         :param figure: Matplotlib figure to use for subplots
         :param axis: Matplotlib axis to use for subplots
-        :return: None
+        :return: None unless axis is given, then scalogram is returned
         """
         # Setup pcolormesh edges
         if transform in ["WWZ", "WWA"]:
@@ -991,10 +991,11 @@ class WaveTransform:
             ax.set_yticks(formatted_ticks, [str(tick) for tick in formatted_ticks], minor=minmaj)
 
         # Create minute axis
+        # TODO: Allow other units (days/years) on x and y axes
         axmin = ax.twinx()
-        axmin.set_ylabel("Period (min)")
+        axmin.set_ylabel(f"Period ({self.__t_units[self.__t_unit]})")
 
-        axmin.set_ylim(1 / (60 * self.__limits[2] * (1 / self.__f_unit)), 1 / (60 * self.__limits[3] * (1 / self.__f_unit)))
+        axmin.set_ylim(1 / (self.__limits[2] * (1 / self.__f_unit)) * self.__t_unit, 1 / (self.__limits[3] * (1 / self.__f_unit)) * self.__t_unit)
         axmin.set_yscale("log")
 
         axmin.yaxis.set_major_formatter(ticker.FuncFormatter(tick_format))
