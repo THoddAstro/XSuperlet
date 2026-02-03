@@ -6,9 +6,9 @@ SimLightCurves: Stores/saves/loads arrays of simulated light curves for signific
 
 Author: Thomas Hodd
 
-Date - 24th August 2025
+Date - 3rd February 2026
 
-Version - 1.0
+Version - 1.1
 """
 import os
 import numpy as np
@@ -34,8 +34,9 @@ class LightCurve:
         :param samples: Number of samples (time points) in the light curve
         :param file: File name of FITS file to load (optional)
         :param rebin: Bin size for FITS file
-        :param zerot: Zero time
+        :param zerot: If True, time to start of light curve is discarded
         """
+        self.start_time = 0
         if file is not None:
             self.load_state = self.load(file, rebin, zerot)
         else:
@@ -57,7 +58,7 @@ class LightCurve:
 
         :param filename: File to load (.fits or .lc)
         :param rebin: Bin size in seconds, if zero the light curve will not be rebinned
-        :param zero: If true the light curve time series will be zeroed at the start.
+        :param zero: If false `start_time` will contain the number of seconds to the start of the light curve.
         :return: True if load successful, else False
         """
         try:
@@ -71,11 +72,14 @@ class LightCurve:
             file_lc = file_lc.rebin(rebin)
             self.dt = rebin
 
+        self.start_time = file_lc.time[0]
+
         # Ensure time is in seconds since start of time series
+        for i in range(0, len(file_lc.time)):
+            file_lc.time[i] = (file_lc.time[i] - self.start_time)
+
         if zero:
-            initt = file_lc.time[0]
-            for i in range(0, len(file_lc.time)):
-                file_lc.time[i] = (file_lc.time[i] - initt)
+            self.start_time = 0
 
         # Save rate and time
         self.__update(file_lc)

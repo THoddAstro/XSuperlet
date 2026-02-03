@@ -9,9 +9,9 @@ Uses Light curve simulation based on Timmer & Koenig (1995) and Emmanoulopoulos 
 
 Author: Thomas Hodd
 
-Date - 18th January 2026
+Date - 3rd February 2026
 
-Version - 1.2
+Version - 1.3
 """
 # System packages
 import os
@@ -33,6 +33,7 @@ from scipy.signal import peak_widths, find_peaks
 from .xlight_curves import LightCurve
 from .superlet_transform import SuperletTransform
 from .sim_light_curve import LightCurveSampler
+from .time_units import *
 
 # Typing and text format
 from typing import Literal
@@ -178,6 +179,10 @@ class WaveTransform:
     sim_pdf_use_kde: bool
         If True, light curve simulation will use kernel density estimation to fit the light curve PDF
         If False, light curve simulation will use the user defined statistical model (Gamma + Lognorm by default)
+    t_unit: str
+        Unit to use when displaying time axes
+    p_unit: str
+        Unit to use when displaying the period on scalograms
 
     Attributes
     ==========
@@ -209,7 +214,8 @@ class WaveTransform:
         Array containing the significance of any calculated transforms - X may be any of "cwt", "slt", "wwz", "wwa"
     """
     def __init__(self, code: str | int, lightcurve: LightCurve, frequencies: np.ndarray,
-                 filename: str, unit: float = 1E+0, sim_pdf_use_kde: bool = True) -> None:
+                 filename: str, unit: float = 1E+0, sim_pdf_use_kde: bool = True,
+                 t_unit: str = "ks", p_unit: str = "min") -> None:
         # Unique identifier (set by Xsuperlet), or name (set by user)
         self.code = code
 
@@ -220,7 +226,6 @@ class WaveTransform:
         self.filename = filename
 
         # Frequencies and units
-        # TODO: Tidy up units
         self.frequencies = frequencies
         self.__unit = unit
         self.__f_unit = 1E+6
@@ -229,12 +234,9 @@ class WaveTransform:
                           1E+3: "mHz",
                           1E+6: "μHz",
                           1E+9: "nHz"}
-        self.__t_unit = 1E-3
-        self.__t_units = {1E-9: "Gs",
-                          1E-6: "Ms",
-                          1E-3: "ks",
-                          1E+0: "s",
-                          1E+3: "ms"}
+
+        self.tu = SecondToUnit(t_unit, self.lc.start_time)
+        self.pu = SecondToUnit(p_unit, self.lc.start_time)
 
         # Cone of Influence
         self._coi = None
@@ -288,11 +290,16 @@ class WaveTransform:
               f"ID {self.code}, {self.timespan}s @ {self.sample_rate}μHz, {len(self.times)} samples\n{ENDC}")
 
         # Calculate the scalogram limits
-        self.__limits = (float(self.times[0] * self.__unit * self.__t_unit), float(self.times[-1] * self.__unit * self.__t_unit),
-                         float(self.frequencies[0] * (1 / self.__unit) * self.__f_unit), float(self.frequencies[-1] * (1 / self.__unit) * self.__f_unit))
+        self.__limits = self.__scalogram_limits()
 
     def __str__(self) -> str:
         return f"ID: {self.code:<10} Length: {self.timespan:<10} Samples: {len(self.signal):<10}{"Filename: " + self.filename:>70}"
+
+    def __scalogram_limits(self) -> tuple:
+        return (self.tu.seconds_to_unit(self.times[0] * self.__unit),
+                self.tu.seconds_to_unit(self.times[-1] * self.__unit),
+                float(self.frequencies[0] * (1 / self.__unit) * self.__f_unit),
+                float(self.frequencies[-1] * (1 / self.__unit) * self.__f_unit))
 
     def print_wavelet(self) -> str:
         """
@@ -344,8 +351,7 @@ class WaveTransform:
         self.sample_rate = int((1 / int((self.times[1] - self.times[0]) * self.__unit)) * self.__unit)
 
         # Calculate the scalogram limits
-        self.__limits = (float(self.times[0] * self.__unit * self.__t_unit), float(self.times[-1] * self.__unit * self.__t_unit),
-                         float(self.frequencies[0] * (1 / self.__unit) * self.__f_unit), float(self.frequencies[-1] * (1 / self.__unit) * self.__f_unit))
+        self.__limits = self.__scalogram_limits()
 
         # Recreate the sampler
         self.sampler = LightCurveSampler(self.get_pylag_lc(), kde=self.sampler_use_kde)
@@ -528,6 +534,9 @@ class WaveTransform:
 
         self._coi = np.insert(self._coi, 0, self.times[0] * self.__unit)
         self._coi_freq = np.insert(self._coi_freq, 0, self.frequencies[-1])
+
+        for i, t in enumerate(self._coi):
+            self._coi[i] = self.tu.seconds_to_unit(t)
 
         self._poisson_lim = self.sampler.get_poisson_limit()
 
@@ -823,17 +832,17 @@ class WaveTransform:
 
         # Locate the bounds of gaps and add them and length to arrays
         for i in range(len(lc_sections) - 1):
-            self.__gaps.append([lc_sections[i].time[-1] * self.__t_unit, lc_sections[i + 1].time[0] * self.__t_unit])
-            gap_times.append((lc_sections[i + 1].time[0] - lc_sections[i].time[0]) * self.__t_unit)
+            self.__gaps.append([self.tu.seconds_to_unit(lc_sections[i].time[-1]), self.tu.seconds_to_unit(lc_sections[i + 1].time[0])])
+            gap_times.append(self.tu.seconds_to_unit(lc_sections[i + 1].time[0] - lc_sections[i].time[0]))
 
-        print(f"Found {len(self.__gaps)} gaps, length: {np.mean(gap_times)}{self.__t_units[self.__t_unit]}")
+        print(f"Found {len(self.__gaps)} gaps, length: {self.tu.seconds_to_unit(np.mean(gap_times))}{self.tu.unit}")
 
         # If no gaps found, destroy list
         if len(self.__gaps) == 0:
             self.__gaps = None
         else:
             # Calculate the mean gap length
-            self.__gap_frequency = (1 / float(np.mean(gap_times))) * self.__t_unit * self.__f_unit
+            self.__gap_frequency = self.tu.seconds_to_unit((1 / float(np.mean(gap_times))) * self.__f_unit)
 
     def plot_signal(self) -> None:
         """
@@ -842,9 +851,9 @@ class WaveTransform:
         :return: None
         """
         plt.figure(0, (16, 5), label="XSuperlet - Light Curve")
-        plt.scatter(self.times * self.__t_unit * self.__unit, self.signal, marker="+", color="k")
+        plt.scatter(self.tu.seconds_to_unit(self.times * self.__unit) + self.lc.start_time, self.signal, marker="+", color="k")
 
-        plt.xlabel(f"Time ({self.__t_units[self.__t_unit]})")
+        plt.xlabel(f"Time ({self.tu.unit})")
         plt.ylabel("Count Rate (Counts / s)")
         plt.tick_params(axis="both", direction="in", top=True, right=True)
         plt.title(self.filename, fontweight="bold")
@@ -882,9 +891,9 @@ class WaveTransform:
         # Time edges
         d_t = np.diff(times * (1 / self.__unit)).mean()
         time_edges = np.concatenate([
-            [times[0] * self.__t_unit - d_t / 2],
-            times[:-1] * self.__t_unit + d_t / 2,
-            [times[-1] * self.__t_unit + d_t / 2]])
+            [self.tu.seconds_to_unit(times[0] - d_t / 2)],
+             self.tu.seconds_to_unit(times[:-1] + d_t / 2),
+            [self.tu.seconds_to_unit(times[-1] + d_t / 2)]])
 
         # Frequency edges, either log or linear space
         if round(freqs[1] - freqs[0], 5) != round(freqs[-1] - freqs[-2], 5):
@@ -942,7 +951,7 @@ class WaveTransform:
             for gap in self.__gaps:
                 ax.fill_betweenx([freqs[0] * self.__f_unit, freqs[-1] * self.__f_unit],
                                  gap[0], gap[1], color=gap_fill[0], alpha=gap_fill[1])
-                plt.plot([self.lc.time[0] * self.__t_unit, self.lc.time[-1] * self.__t_unit],
+                plt.plot([self.lc.time[0] * 1, self.lc.time[-1] * 1],
                          [self.__gap_frequency, self.__gap_frequency], color="w", linestyle="dashed", linewidth=1)
 
         # Plot the significance, if determined
@@ -956,8 +965,8 @@ class WaveTransform:
         # Plot the COI, if calculated
         if self._coi is not None:
             ax_coi = ax.twinx()
-            ax_coi.plot(self._coi * self.__t_unit, self._coi_freq * (1 / self.__unit) * self.__f_unit, color=coi_fill[0], linestyle="dashed", linewidth=1)
-            ax_coi.fill_between(self._coi * self.__t_unit, self._coi_freq * (1 / self.__unit) * self.__f_unit,
+            ax_coi.plot(self._coi * 1, self._coi_freq * (1 / self.__unit) * self.__f_unit, color=coi_fill[0], linestyle="dashed", linewidth=1)
+            ax_coi.fill_between(self._coi * 1, self._coi_freq * (1 / self.__unit) * self.__f_unit,
                                 (self.frequencies * (1 / self.__unit) * self.__f_unit).min(), color=coi_fill[0], alpha=coi_fill[1])
             ax_coi.set_yscale("log")
             ax_coi.set_xlim(self.__limits[0], self.__limits[1])
@@ -979,8 +988,11 @@ class WaveTransform:
         ax.set_xlim(self.__limits[0], self.__limits[1])
         ax.set_ylim(self.__limits[2], self.__limits[3])
 
+        ax.xaxis.set_major_formatter(ticker.FuncFormatter(tick_format))
+        ax.xaxis.set_minor_formatter(ticker.FuncFormatter(tick_format))
+
         if axis is None:
-            ax.set_xlabel(f"Time ({self.__t_units[self.__t_unit]})")
+            ax.set_xlabel(f"Time ({self.tu.unit})")
         ax.set_ylabel(f"Frequency ({self.__f_units[self.__f_unit]})")
 
         # Deal with tick formatting
@@ -993,9 +1005,11 @@ class WaveTransform:
         # Create minute axis
         # TODO: Allow other units (days/years) on x and y axes
         axmin = ax.twinx()
-        axmin.set_ylabel(f"Period ({self.__t_units[self.__t_unit]})")
+        axmin.set_ylabel(f"Period ({self.pu.unit})")
 
-        axmin.set_ylim(1 / (self.__limits[2] * (1 / self.__f_unit)) * self.__t_unit, 1 / (self.__limits[3] * (1 / self.__f_unit)) * self.__t_unit)
+        min_period = 1 / (self.__limits[2] * (1 / self.__f_unit))
+        max_period = 1 / (self.__limits[3] * (1 / self.__f_unit))
+        axmin.set_ylim(self.pu.seconds_to_unit(min_period), self.pu.seconds_to_unit(max_period))
         axmin.set_yscale("log")
 
         axmin.yaxis.set_major_formatter(ticker.FuncFormatter(tick_format))
@@ -1061,11 +1075,11 @@ class WaveTransform:
 
         # Set title
         if transform == "CWT":
-            ax.set_title(f"Wavelet Power @ {int(time * 1E+3)}{self.__t_units[self.__t_unit]}")
+            ax.set_title(f"Wavelet Power @ {int(time * 1E+3)}{self.tu.unit}")
         elif transform == "SLT":
-            ax.set_title(f"Superlet Power @ {int(time * 1E+3)}{self.__t_units[self.__t_unit]}")
+            ax.set_title(f"Superlet Power @ {int(time * 1E+3)}{self.tu.unit}")
         else:
-            ax.set_title(f"{transform} Power @ {int(time * 1E+3)}{self.__t_units[self.__t_unit]}")
+            ax.set_title(f"{transform} Power @ {int(time * 1E+3)}{self.tu.unit}")
 
         # Set axes limits
         ax.set_ylim(0.0, max(power) * 1.05)
@@ -1171,14 +1185,14 @@ class WaveTransform:
                 try:
                     target_index = distance_to_target.index(min(distance_to_target))
                 except ValueError:
-                    print(f"{WARN}{"["+str(round(t * 1E+3, 3)) + f" {self.__t_units[self.__t_unit]}]":>12} No peak found for target frequency!")
+                    print(f"{WARN}{"["+str(round(t * 1E+3, 3)) + f" {self.tu.unit}]":>12} No peak found for target frequency!")
                 else:
-                    print(f"{"["+str(int(round(t * 1E+3, 3))) + f" {self.__t_units[self.__t_unit]}]":>12} Target found at:"
+                    print(f"{"["+str(int(round(t * 1E+3, 3))) + f" {self.tu.unit}]":>12} Target found at:"
                           f"{f"{float(f"{round(peak_fs[target_index], 0)}"):g}":>5}"
                           f" +/- {f"{float(f"{fwhms[target_index] / 2:.1g}"):g}":<4} {self.__f_units[self.__f_unit]}")
 
                     self.__f_peaks.append(peak_fs[target_index])
-                    self.__f_peaks_time.append(t * self.__unit * self.__t_unit)
+                    self.__f_peaks_time.append(t * self.__unit * 1)
                     self.__f_peaks_error.append(fwhms[target_index] / 2)
 
     def clear_frequency_tracers(self) -> None:

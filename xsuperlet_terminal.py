@@ -25,9 +25,9 @@ Options
 
 Author: Thomas Hodd
 
-Date - 18th January 2026
+Date - 3rd February 2026
 
-Version - 1.0.3
+Version - 1.1.0
 """
 
 # Check for command-line arguments
@@ -115,6 +115,10 @@ CWT_PROXIES = ast.literal_eval(config.get("USER_SHORTCUTS", "CWT_PROXIES"))
 WWZ_PROXIES = ast.literal_eval(config.get("USER_SHORTCUTS", "WWZ_PROXIES"))
 WWA_PROXIES = ast.literal_eval(config.get("USER_SHORTCUTS", "WWA_PROXIES"))
 SLT_PROXIES = ast.literal_eval(config.get("USER_SHORTCUTS", "SLT_PROXIES"))
+
+FREQ_UNIT = config.get("UNITS", "FREQUENCY")
+TIME_UNIT = config.get("UNITS", "TIME")
+PERIOD_UNIT = config.get("UNITS", "PERIOD")
 
 LOGGING = config.getboolean("SETTINGS", "LOGGING")
 ZERO_TIME_SERIES = config.getboolean("SETTINGS", "ZERO_TIME_SERIES")
@@ -420,11 +424,13 @@ class Xsuperlet:
 
             if lightcurve.load_state:
                 # Add WaveTransform object to list
-                self.__user_lightcurves.append(WaveTransform(self.__user_lightcurve_count, lightcurve, self.__frequency_grid, length_file, self.__units))
+                self.__user_lightcurves.append(WaveTransform(self.__user_lightcurve_count, lightcurve, self.__frequency_grid, length_file, self.__units,
+                                                             t_unit=TIME_UNIT, p_unit=PERIOD_UNIT))
         else:
             # Add empty light curve
             lightcurve = LightCurve(int(length_file), int(samples_rbin))
-            self.__user_lightcurves.append(WaveTransform(self.__user_lightcurve_count, lightcurve, self.__frequency_grid, "SIMULATED", self.__units))
+            self.__user_lightcurves.append(WaveTransform(self.__user_lightcurve_count, lightcurve, self.__frequency_grid, "SIMULATED", self.__units,
+                                                         t_unit=TIME_UNIT, p_unit=PERIOD_UNIT))
         finally:
             self.__user_lightcurve_count += 1
 
@@ -1265,7 +1271,7 @@ if __name__ == "__main__":
     print(f"({round(t.time() - loadstart, 2)}s)")
     print(f"\n{BLUE}"
           "========================\n"
-          "XSuperlet         v1.0.3\n"
+          "XSuperlet         v1.1.0\n"
           "========================\n"
           f"{ENDC}")
 
