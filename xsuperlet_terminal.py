@@ -27,8 +27,15 @@ Author: Thomas Hodd
 
 Date - 3rd February 2026
 
-Version - 1.1.0
+Version - 1.1.1
 """
+# Set program name
+try:
+    import setproctitle
+except ModuleNotFoundError:
+    pass
+else:
+    setproctitle.setproctitle(f"XSuperlet")
 
 # Check for command-line arguments
 import argparse
@@ -92,6 +99,7 @@ home_dir = os.path.dirname(os.path.abspath(__file__))
 
 # Read in user-specified constants
 config = configparser.ConfigParser()
+config.optionxform = str
 config.read(f"{home_dir}/config.ini")
 
 DEFAULT_BIN_SIZE = config.getint("DEFAULTS", "BIN_SIZE")
@@ -1033,27 +1041,39 @@ class Xsuperlet:
 
     @_help
     @_validate_lc
-    def set_freq_from_lc(self, lc_code: int, scale_factor: int | float = None) -> None:
+    def set_freq_from_lc(self, lc_code: int, scale_factor: int | float = None, *args) -> None:
         """
         Automatically sets the frequency range based on the given light curve.
+        Overwrite the current defaults in `config.ini` by passing '-d' as a parameter.
 
         :param lc_code: Light curve identifier
         :param scale_factor: Size of range, 2 is default range size
         :return: None
         """
         # Get WT and LightCurve objects
-        wt: WaveTransform = self.__get_wave_transform_object(lc_code)
-        lcurve: LightCurve = wt.lc
+        lcurve: LightCurve = self.__get_wave_transform_object(lc_code).lc
 
         # Retrieve scale factor
-        scale_factor = self.__validate_default_type(float, scale_factor, "scale_factor", 2.0)
+        if scale_factor == "-d":
+            valid_scale_factor = 2.0
+        else:
+            valid_scale_factor = self.__validate_default_type(float, scale_factor, "scale_factor", 2.0)
 
         # Calculate frequency range (using the light curve's period in s)
         min_freq = (2 / lcurve.length)
-        max_freq = min_freq * 10 * scale_factor
+        max_freq = min_freq * 10 * valid_scale_factor
 
-        print(f"{BLUE}Setting frequency range to {min_freq:.2G} - {max_freq:.2G} Hz{ENDC}")
+        # Set the new frequency range
+        print(f"{BLUE}Setting frequency range to {min_freq:.1E} - {max_freq:.1E} Hz{ENDC}")
         self.set_freq_range(min_freq, max_freq, len(self.__frequency_grid))
+
+        # Overwrite config.ini if requested
+        if "-d" in args or scale_factor == "-d":
+            print(f"{BLUE}Overwriting default frequency range{ENDC}\n")
+            config["DEFAULTS"]["FREQ_GRID_MIN"] = str(f"{min_freq:.1E}")
+            config["DEFAULTS"]["FREQ_GRID_MAX"] = str(f"{max_freq:.1E}")
+            with open(f"{home_dir}/config.ini", "w") as f:
+                config.write(f)
 
     @_help
     @_validate_lc
@@ -1271,7 +1291,7 @@ if __name__ == "__main__":
     print(f"({round(t.time() - loadstart, 2)}s)")
     print(f"\n{BLUE}"
           "========================\n"
-          "XSuperlet         v1.1.0\n"
+          "XSuperlet         v1.1.1\n"
           "========================\n"
           f"{ENDC}")
 
