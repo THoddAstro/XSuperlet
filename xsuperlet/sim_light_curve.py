@@ -65,7 +65,7 @@ class LightCurveSampler:
         self.length = real_lc.time[-1] - real_lc.time[0]
 
         # Constants
-        self.red_noise = 1
+        self.red_noise = 10
         self.aliasing_tbin = 1
         self.n_rnoise_bins = self.red_noise * self.aliasing_tbin * self.nbins
 
