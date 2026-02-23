@@ -1155,7 +1155,7 @@ class Xsuperlet:
         else:
             print(f"{ERRR}Invalid value '{transform}' for parameter <transform>, possible values: 'cwt', 'wwz', 'wwa', 'slt'{ENDC}")
             return
-        data = wt.get_transform_data(Literal["CWT", "WWZ", "WWA", "SLT"](transform))
+        data = wt.get_transform_data(transform)
 
         file_name = wt.filename.split(".")[0]
 
@@ -1166,8 +1166,12 @@ class Xsuperlet:
             np.save(f"{transform}_{file_name}_sig", data[1])
 
         # Save times, frequencies, COI
-        np.save(f"{transform}_{file_name}_times", wt.times)
-        np.save(f"{transform}_{file_name}_freqs", wt.frequencies)
+        if transform not in ["WWZ", "WWA"]:
+            np.save(f"{transform}_{file_name}_times", wt.times)
+            np.save(f"{transform}_{file_name}_freqs", wt.frequencies)
+        else:
+            np.save(f"{transform}_{file_name}_times", wt.wwz_time_grid * (1 / self.__units))
+            np.save(f"{transform}_{file_name}_freqs", wt.wwz_freq_grid * self.__units)
         if wt._coi is not None:
             np.save(f"{transform}_{file_name}_coi", wt._coi)
             np.save(f"{transform}_{file_name}_coi_f", wt._coi_freq)
