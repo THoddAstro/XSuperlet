@@ -1181,18 +1181,21 @@ class WaveTransform:
                     distance_to_target.append(abs(f_target - freqs[peak]))
                     peak_fs.append(freqs[peak])
 
+                # Get time in selected unit
+                time = self.tu.time_units[self.tu.unit](t * self.__unit)
+
                 # Append the closest peak to lists if one is found
                 try:
                     target_index = distance_to_target.index(min(distance_to_target))
                 except ValueError:
-                    print(f"{WARN}{"["+str(round(t * 1E+3, 3)) + f" {self.tu.unit}]":>12} No peak found for target frequency!")
+                    print(f"{WARN}{"["+str(round(time, 3)) + f" {self.tu.unit}]":>12} No peak found for target frequency!")
                 else:
-                    print(f"{"["+str(int(round(t * 1E+3, 3))) + f" {self.tu.unit}]":>12} Target found at:"
+                    print(f"{"["+str(int(round(time, 3))) + f" {self.tu.unit}]":>12} Target found at:"
                           f"{f"{float(f"{round(peak_fs[target_index], 0)}"):g}":>5}"
                           f" +/- {f"{float(f"{fwhms[target_index] / 2:.1g}"):g}":<4} {self.__f_units[self.__f_unit]}")
 
                     self.__f_peaks.append(peak_fs[target_index])
-                    self.__f_peaks_time.append(t * self.__unit * 1)
+                    self.__f_peaks_time.append(time)
                     self.__f_peaks_error.append(fwhms[target_index] / 2)
 
     def clear_frequency_tracers(self) -> None:
