@@ -25,9 +25,9 @@ Options
 
 Author: Thomas Hodd
 
-Date - 3rd February 2026
+Date - 26th February 2026
 
-Version - 1.1.1
+Version - 1.2.0
 """
 # Set program name
 try:
@@ -136,6 +136,7 @@ GAP_FILL = ast.literal_eval(config.get("SETTINGS", "GAP_FILL_COLOUR"))
 COI_FILL = ast.literal_eval(config.get("SETTINGS", "COI_FILL_COLOUR"))
 SIM_TYPE = config.get("SETTINGS", "SIMULATION_TYPE")
 WWZ_VERBOSE = config.getint("SETTINGS", "WWZ_VERBOSE")
+AUTO_SCALE = config.getboolean("SETTINGS", "SCALOGRAM_AUTO_SCALE")
 
 # Suppress RuntimeWarnings
 if config.getboolean("SETTINGS", "SUPPRESS_WARNINGS"):
@@ -665,7 +666,7 @@ class Xsuperlet:
         prominence = self.__validate_default_type(float, prominence, "min_prominence", MIN_PROMINENCE_DEFAULT)
 
         if self.__validate_type(float, time, "time"):
-            wt.plot_slice(transform, float(time) * 1E-3, peak_height, prominence, COI_FILL)
+            wt.plot_slice(transform, float(time), peak_height, prominence, COI_FILL)
 
     @_help
     @_validate_lc
@@ -1107,13 +1108,19 @@ class Xsuperlet:
             print(f"{ERRR}'{transform}' is not a valid transform{ENDC}")
             return
 
-        # Set min/max colour scaling
-        if v_min is not None and v_max is not None:
-            v_min = self.__validate_default_type(float, v_min, "v_min", None)
-            v_max = self.__validate_default_type(float, v_max, "v_max", None)
-
         # Get WT object
         wt: WaveTransform = self.__get_wave_transform_object(lc_code)
+
+        # Set min/max colour scaling
+        if AUTO_SCALE:
+            data, _ = wt.get_transform_data(transform)
+            v_min = np.percentile(data, 1)
+            v_max = np.percentile(data, 99)
+
+        if v_min is not None:
+            v_min = self.__validate_default_type(float, v_min, "v_min", None)
+        if v_max is not None:
+            v_max = self.__validate_default_type(float, v_max, "v_max", None)
 
         # Plot CWT
         if transform.lower() in CWT_PROXIES:
@@ -1295,7 +1302,7 @@ if __name__ == "__main__":
     print(f"({round(t.time() - loadstart, 2)}s)")
     print(f"\n{BLUE}"
           "========================\n"
-          "XSuperlet         v1.1.1\n"
+          "XSuperlet         v1.2.0\n"
           "========================\n"
           f"{ENDC}")
 

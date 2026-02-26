@@ -1113,7 +1113,7 @@ class WaveTransform:
 
         # Plot COI
         if self._coi is not None:
-            coi_index = closest_index(self._coi, time * 1E+6)
+            coi_index = closest_index(self._coi, time)
             coi_freq = self._coi_freq[coi_index]
             ax.axvline(coi_freq, color="k", linestyle="dashed", linewidth=2)
             ax.fill_betweenx(plt.ylim(), self.frequencies[0], coi_freq,
