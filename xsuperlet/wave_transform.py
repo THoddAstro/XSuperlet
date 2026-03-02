@@ -881,7 +881,10 @@ class WaveTransform:
         :return: None unless axis is given, then scalogram is returned
         """
         # Setup pcolormesh edges
-        if transform in ["WWZ", "WWA"]:
+        if type(transform) == np.ndarray:
+            times = self.times * self.__unit
+            freqs = self.frequencies * (1 / self.__unit)
+        elif transform in ["WWZ", "WWA"]:
             times = self.wwz_time_grid
             freqs = self.wwz_freq_grid
         else:

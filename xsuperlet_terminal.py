@@ -25,9 +25,9 @@ Options
 
 Author: Thomas Hodd
 
-Date - 26th February 2026
+Date - 2nd March 2026
 
-Version - 1.2.0
+Version - 1.2.1
 """
 # Set program name
 try:
@@ -123,6 +123,16 @@ CWT_PROXIES = ast.literal_eval(config.get("USER_SHORTCUTS", "CWT_PROXIES"))
 WWZ_PROXIES = ast.literal_eval(config.get("USER_SHORTCUTS", "WWZ_PROXIES"))
 WWA_PROXIES = ast.literal_eval(config.get("USER_SHORTCUTS", "WWA_PROXIES"))
 SLT_PROXIES = ast.literal_eval(config.get("USER_SHORTCUTS", "SLT_PROXIES"))
+
+transform_dict = {}
+for proxy in CWT_PROXIES:
+    transform_dict[proxy] = "CWT"
+for proxy in SLT_PROXIES:
+    transform_dict[proxy] = "SLT"
+for proxy in WWZ_PROXIES:
+    transform_dict[proxy] = "WWZ"
+for proxy in WWA_PROXIES:
+    transform_dict[proxy] = "WWA"
 
 FREQ_UNIT = config.get("UNITS", "FREQUENCY")
 TIME_UNIT = config.get("UNITS", "TIME")
@@ -232,15 +242,9 @@ class Xsuperlet:
             print(f"{ERRR}'{transform_str}' is not a valid transform{ENDC}")
             return None
         else:
-            if transform_str.lower() in CWT_PROXIES:
-                return "CWT"
-            elif transform_str.lower() in WWZ_PROXIES:
-                return "WWZ"
-            elif transform_str.lower() in WWA_PROXIES:
-                return "WWA"
-            elif transform_str.lower() in SLT_PROXIES:
-                return "SLT"
-            else:
+            try:
+                return transform_dict[transform_str.lower()]
+            except KeyError:
                 print(f"{ERRR}'{transform_str}' is not a valid transform{ENDC}")
                 return None
 
@@ -1111,7 +1115,12 @@ class Xsuperlet:
         # Get WT object
         wt: WaveTransform = self.__get_wave_transform_object(lc_code)
 
+        transform = self.__get_transform(transform)
+        if transform is None:
+            return
+
         # Set min/max colour scaling
+        # TODO: If COI calculated, scale to useful data only
         if AUTO_SCALE:
             data, _ = wt.get_transform_data(transform)
             v_min = np.percentile(data, 1)
@@ -1151,16 +1160,8 @@ class Xsuperlet:
         wt: WaveTransform = self.__get_wave_transform_object(lc_code)
 
         # Get transform data
-        if transform.lower() in CWT_PROXIES:
-            transform = "CWT"
-        elif transform.lower() in WWZ_PROXIES:
-            transform = "WWZ"
-        elif transform.lower() in WWA_PROXIES:
-            transform = "WWA"
-        elif transform.lower() in SLT_PROXIES:
-            transform = "SLT"
-        else:
-            print(f"{ERRR}Invalid value '{transform}' for parameter <transform>, possible values: 'cwt', 'wwz', 'wwa', 'slt'{ENDC}")
+        transform = self.__get_transform(transform)
+        if transform is None:
             return
         data = wt.get_transform_data(transform)
 
@@ -1215,21 +1216,13 @@ class Xsuperlet:
             print(f"{ERRR}'{transform}' is not a valid transform{ENDC}")
             return
 
-        if transform.lower() in CWT_PROXIES:
-            t1 = lc1.get_transform_data("CWT")[0]
-            t2 = lc2.get_transform_data("CWT")[0]
-        elif transform.lower() in WWZ_PROXIES:
-            t1 = lc1.get_transform_data("WWZ")[0]
-            t2 = lc2.get_transform_data("WWZ")[0]
-        elif transform.lower() in WWA_PROXIES:
-            t1 = lc1.get_transform_data("WWA")[0]
-            t2 = lc2.get_transform_data("WWA")[0]
-        elif transform.lower() in SLT_PROXIES:
-            t1 = lc1.get_transform_data("SLT")[0]
-            t2 = lc2.get_transform_data("SLT")[0]
-        else:
-            print(f"{ERRR}Invalid value '{transform}' for parameter <transform>, possible values: 'cwt', 'wwz', 'wwa', 'slt'{ENDC}")
+        # Get transform
+        transform = self.__get_transform(transform)
+        if transform is None:
             return
+
+        t1 = lc1.get_transform_data(transform)[0]
+        t2 = lc2.get_transform_data(transform)[0]
 
         # Normalise transforms
         t1_norm = (t1 - t1.min()) / (t1.max() - t1.min())
@@ -1302,7 +1295,7 @@ if __name__ == "__main__":
     print(f"({round(t.time() - loadstart, 2)}s)")
     print(f"\n{BLUE}"
           "========================\n"
-          "XSuperlet         v1.2.0\n"
+          "XSuperlet         v1.2.1\n"
           "========================\n"
           f"{ENDC}")
 
