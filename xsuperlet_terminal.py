@@ -441,12 +441,12 @@ class Xsuperlet:
             if lightcurve.load_state:
                 # Add WaveTransform object to list
                 self.__user_lightcurves.append(WaveTransform(self.__user_lightcurve_count, lightcurve, self.__frequency_grid, length_file, self.__units,
-                                                             t_unit=TIME_UNIT, p_unit=PERIOD_UNIT))
+                                                             t_unit=TIME_UNIT, p_unit=PERIOD_UNIT, f_unit=FREQ_UNIT))
         else:
             # Add empty light curve
             lightcurve = LightCurve(int(length_file), int(samples_rbin))
             self.__user_lightcurves.append(WaveTransform(self.__user_lightcurve_count, lightcurve, self.__frequency_grid, "SIMULATED", self.__units,
-                                                         t_unit=TIME_UNIT, p_unit=PERIOD_UNIT))
+                                                         t_unit=TIME_UNIT, p_unit=PERIOD_UNIT, f_unit=FREQ_UNIT))
         finally:
             self.__user_lightcurve_count += 1
 

@@ -94,3 +94,15 @@ class SecondToUnit:
         except KeyError:
             print(f"Unknown time unit: {self.unit}\nUnit conversion impossible!")
             return time
+
+
+frequency_dict = {
+    "GHz": 1E+9,
+    "MHz": 1E+6,
+    "kHz": 1E+3,
+    "Hz" : 1E+0,
+    "mHz": 1E-3,
+    "μHz": 1E-6,
+    "nHz": 1E-9,
+    "pHz": 1E-12
+}

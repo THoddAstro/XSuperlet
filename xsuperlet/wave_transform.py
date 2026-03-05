@@ -215,7 +215,7 @@ class WaveTransform:
     """
     def __init__(self, code: str | int, lightcurve: LightCurve, frequencies: np.ndarray,
                  filename: str, unit: float = 1E+0, sim_pdf_use_kde: bool = True,
-                 t_unit: str = "ks", p_unit: str = "min") -> None:
+                 t_unit: str = "ks", p_unit: str = "min", f_unit: str = "μHz") -> None:
         # Unique identifier (set by Xsuperlet), or name (set by user)
         self.code = code
 
@@ -228,13 +228,9 @@ class WaveTransform:
         # Frequencies and units
         self.frequencies = frequencies
         self.__unit = unit
-        self.__f_unit = 1E+6
-        self.__f_units = {1E-3: "kHz",
-                          1E+0: "Hz",
-                          1E+3: "mHz",
-                          1E+6: "μHz",
-                          1E+9: "nHz"}
-
+        self.__f_unit = 1 / frequency_dict[f_unit]
+        print(self.__f_unit)
+        self.__f_unit_str = f_unit
         self.tu = SecondToUnit(t_unit, self.lc.start_time)
         self.pu = SecondToUnit(p_unit, self.lc.start_time)
 
@@ -434,7 +430,7 @@ class WaveTransform:
         """
         # Get edges and transform data
         _, _, time_edges, freq_edges = self.get_scalogram_edges(transform)
-        transform_data, _ = self.get_transform_data(transform)
+        transform_data = self.get_transform_data(transform)[0].copy()
 
         if self._coi is None:
             print(f"{WARN}COI not calculated for {transform}{ENDC}")
@@ -1039,7 +1035,7 @@ class WaveTransform:
 
         if axis is None:
             ax.set_xlabel(f"Time ({self.tu.unit})")
-        ax.set_ylabel(f"Frequency ({self.__f_units[self.__f_unit]})")
+        ax.set_ylabel(f"Frequency ({self.__f_unit_str})")
 
         # Deal with tick formatting
         for minmaj in [True, False]:
@@ -1049,7 +1045,6 @@ class WaveTransform:
             ax.set_yticks(formatted_ticks, [str(tick) for tick in formatted_ticks], minor=minmaj)
 
         # Create minute axis
-        # TODO: Allow other units (days/years) on x and y axes
         axmin = ax.twinx()
         axmin.set_ylabel(f"Period ({self.pu.unit})")
 
@@ -1116,7 +1111,7 @@ class WaveTransform:
         ax.set_xscale("log")
 
         # Set axes labels
-        ax.set_xlabel(f"Frequency ({self.__f_units[self.__f_unit]})")
+        ax.set_xlabel(f"Frequency ({self.__f_unit_str})")
         ax.set_ylabel("Power (Arbitrary Units)")
 
         # Set title
@@ -1152,7 +1147,7 @@ class WaveTransform:
 
         # Print FWHM
         for peak, fwhm in zip(peaks, fwhms):
-            print(f"Peak at: {round(freqs[peak], 0):>6} +/- {f"{float(f"{fwhm/2:.1g}"):g}":<4} {self.__f_units[self.__f_unit]}")
+            print(f"Peak at: {round(freqs[peak], 0):>6} +/- {f"{float(f"{fwhm/2:.1g}"):g}":<4} {self.__f_unit_str}")
 
         # Plot FWHM
         ax.errorbar(freqs[peaks], power[peaks], yerr=0, xerr=(np.array(fwhms)/2), fmt="ks", markersize=6, capsize=4, label="Peak Frequencies")
@@ -1238,7 +1233,7 @@ class WaveTransform:
                 else:
                     print(f"{"["+str(int(round(time, 3))) + f" {self.tu.unit}]":>12} Target found at:"
                           f"{f"{float(f"{round(peak_fs[target_index], 0)}"):g}":>5}"
-                          f" +/- {f"{float(f"{fwhms[target_index] / 2:.1g}"):g}":<4} {self.__f_units[self.__f_unit]}")
+                          f" +/- {f"{float(f"{fwhms[target_index] / 2:.1g}"):g}":<4} {self.__f_unit_str}")
 
                     self.__f_peaks.append(peak_fs[target_index])
                     self.__f_peaks_time.append(time)
