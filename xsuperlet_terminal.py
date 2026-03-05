@@ -25,9 +25,9 @@ Options
 
 Author: Thomas Hodd
 
-Date - 2nd March 2026
+Date - 5th March 2026
 
-Version - 1.2.1
+Version - 1.2.2
 """
 # Set program name
 try:
@@ -118,6 +118,9 @@ PEAK_HEIGHT_DEFAULT = config.getfloat("DEFAULTS", "PEAK_HEIGHT")
 MIN_PROMINENCE_DEFAULT = config.getfloat("DEFAULTS", "MIN_PROMINENCE")
 PEAK_INTERVAL_OFFSET = config.getint("DEFAULTS", "PEAK_INTERVAL_OFFSET")
 
+AUTO_SCALE_MIN = config.getfloat("DEFAULTS", "AUTO_SCALE_MIN")
+AUTO_SCALE_MAX = config.getfloat("DEFAULTS", "AUTO_SCALE_MAX")
+
 LC_PROXIES = ast.literal_eval(config.get("USER_SHORTCUTS", "LC_PROXIES"))
 CWT_PROXIES = ast.literal_eval(config.get("USER_SHORTCUTS", "CWT_PROXIES"))
 WWZ_PROXIES = ast.literal_eval(config.get("USER_SHORTCUTS", "WWZ_PROXIES"))
@@ -138,6 +141,7 @@ FREQ_UNIT = config.get("UNITS", "FREQUENCY")
 TIME_UNIT = config.get("UNITS", "TIME")
 PERIOD_UNIT = config.get("UNITS", "PERIOD")
 
+AUTO_SCALE = config.getboolean("SETTINGS", "SCALOGRAM_AUTO_SCALE")
 LOGGING = config.getboolean("SETTINGS", "LOGGING")
 ZERO_TIME_SERIES = config.getboolean("SETTINGS", "ZERO_TIME_SERIES")
 FREQ_BIN_SCALE = config.get("SETTINGS", "FREQ_BIN_SCALE")
@@ -146,7 +150,6 @@ GAP_FILL = ast.literal_eval(config.get("SETTINGS", "GAP_FILL_COLOUR"))
 COI_FILL = ast.literal_eval(config.get("SETTINGS", "COI_FILL_COLOUR"))
 SIM_TYPE = config.get("SETTINGS", "SIMULATION_TYPE")
 WWZ_VERBOSE = config.getint("SETTINGS", "WWZ_VERBOSE")
-AUTO_SCALE = config.getboolean("SETTINGS", "SCALOGRAM_AUTO_SCALE")
 
 # Suppress RuntimeWarnings
 if config.getboolean("SETTINGS", "SUPPRESS_WARNINGS"):
@@ -1120,16 +1123,15 @@ class Xsuperlet:
             return
 
         # Set min/max colour scaling
-        # TODO: If COI calculated, scale to useful data only
-        if AUTO_SCALE:
-            data, _ = wt.get_transform_data(transform)
-            v_min = np.percentile(data, 1)
-            v_max = np.percentile(data, 99)
-
         if v_min is not None:
             v_min = self.__validate_default_type(float, v_min, "v_min", None)
         if v_max is not None:
             v_max = self.__validate_default_type(float, v_max, "v_max", None)
+
+        if v_min is None and v_max is None and AUTO_SCALE:
+            data = wt.restrict_to_coi(transform)
+            v_min = np.percentile(data, AUTO_SCALE_MIN)
+            v_max = np.percentile(data, AUTO_SCALE_MAX)
 
         # Plot CWT
         if transform.lower() in CWT_PROXIES:
@@ -1295,7 +1297,7 @@ if __name__ == "__main__":
     print(f"({round(t.time() - loadstart, 2)}s)")
     print(f"\n{BLUE}"
           "========================\n"
-          "XSuperlet         v1.2.1\n"
+          "XSuperlet         v1.2.2\n"
           "========================\n"
           f"{ENDC}")
 

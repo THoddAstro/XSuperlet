@@ -9,9 +9,9 @@ Uses Light curve simulation based on Timmer & Koenig (1995) and Emmanoulopoulos 
 
 Author: Thomas Hodd
 
-Date - 3rd February 2026
+Date - 5th March 2026
 
-Version - 1.3
+Version - 1.4
 """
 # System packages
 import os
@@ -389,6 +389,73 @@ class WaveTransform:
             transform_data = np.abs(transform_data)
 
         return transform_data, transform_sig
+
+    def get_scalogram_edges(self, transform: str | np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+        """
+        Calculates the edges for scalogram frequency/time bins.
+
+        :param transform: 3-letter code of the transform: "CWT", "WWZ", "WWA" or "SLT"
+        :return: Arrays of time and frequency and the bin edges for each
+        """
+        if type(transform) == np.ndarray:
+            times = self.times * self.__unit
+            freqs = self.frequencies * (1 / self.__unit)
+        elif transform in ["WWZ", "WWA"]:
+            times = self.wwz_time_grid
+            freqs = self.wwz_freq_grid
+        else:
+            times = self.times * self.__unit
+            freqs = self.frequencies * (1 / self.__unit)
+
+        # Time edges
+        d_t = np.diff(times * (1 / self.__unit)).mean()
+        time_edges = np.concatenate([
+            [self.tu.seconds_to_unit(times[0] - d_t / 2)],
+             self.tu.seconds_to_unit(times[:-1] + d_t / 2),
+            [self.tu.seconds_to_unit(times[-1] + d_t / 2)]])
+
+        # Frequency edges, either log or linear space
+        if round(freqs[1] - freqs[0], 5) != round(freqs[-1] - freqs[-2], 5):
+            freq_edges = np.geomspace(freqs[0], freqs[-1], len(freqs) + 1)
+        else:
+            d_f = np.diff(freqs).mean()
+            freq_edges = np.concatenate([[(freqs[0] * self.__f_unit) - d_f / 2],
+                                         (freqs[:-1] * self.__f_unit) + d_f / 2,
+                                         [(freqs[-1] * self.__f_unit) + d_f / 2]])
+
+        return times, freqs, time_edges, freq_edges
+
+    def restrict_to_coi(self, transform: Literal["CWT", "WWZ", "WWA", "SLT"]) -> np.ndarray:
+        """
+        Returns a transform restricted to the valid COI region only.
+
+        :param transform: Transform to restrict
+        :return: Strictly valid transform array
+        """
+        # Get edges and transform data
+        _, _, time_edges, freq_edges = self.get_scalogram_edges(transform)
+        transform_data, _ = self.get_transform_data(transform)
+
+        if self._coi is None:
+            print(f"{WARN}COI not calculated for {transform}{ENDC}")
+            return transform_data
+
+        # Calculate bin centres
+        freq_centres = (freq_edges[:-1] + freq_edges[1:]) / 2
+        time_centres = (time_edges[:-1] + time_edges[1:]) / 2
+
+        # Interpolate COI frequency to match time bin centres
+        coi_freq_interp = np.interp(time_centres, self._coi, self._coi_freq)
+
+        # Create 2D grids of frequencies for comparison
+        freq_grid, _ = np.meshgrid(freq_centres, time_centres, indexing="ij")
+        coi_freq_grid = np.tile(coi_freq_interp, (len(freq_centres), 1))
+
+        # Mask frequency below the COI
+        mask = freq_grid < coi_freq_grid
+        transform_data[mask] = 0
+
+        return transform_data
 
     def get_pylag_lc(self):
         """
@@ -881,31 +948,7 @@ class WaveTransform:
         :return: None unless axis is given, then scalogram is returned
         """
         # Setup pcolormesh edges
-        if type(transform) == np.ndarray:
-            times = self.times * self.__unit
-            freqs = self.frequencies * (1 / self.__unit)
-        elif transform in ["WWZ", "WWA"]:
-            times = self.wwz_time_grid
-            freqs = self.wwz_freq_grid
-        else:
-            times = self.times * self.__unit
-            freqs = self.frequencies * (1 / self.__unit)
-
-        # Time edges
-        d_t = np.diff(times * (1 / self.__unit)).mean()
-        time_edges = np.concatenate([
-            [self.tu.seconds_to_unit(times[0] - d_t / 2)],
-             self.tu.seconds_to_unit(times[:-1] + d_t / 2),
-            [self.tu.seconds_to_unit(times[-1] + d_t / 2)]])
-
-        # Frequency edges, either log or linear space
-        if round(freqs[1] - freqs[0], 5) != round(freqs[-1] - freqs[-2], 5):
-            freq_edges = np.geomspace(freqs[0], freqs[-1], len(freqs) + 1)
-        else:
-            d_f = np.diff(freqs).mean()
-            freq_edges = np.concatenate([[(freqs[0] * self.__f_unit) - d_f / 2],
-                                         (freqs[:-1] * self.__f_unit) + d_f / 2,
-                                         [(freqs[-1] * self.__f_unit) + d_f / 2]])
+        times, freqs, time_edges, freq_edges = self.get_scalogram_edges(transform)
 
         if axis is None:
             # Initialise figure
