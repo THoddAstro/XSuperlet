@@ -135,6 +135,7 @@ class LightCurve:
         :param args: Input parameters:
         - freq (float): Frequency of the sinusoid (required).
         - amp (float, optional): Amplitude of the sinusoid (default is 1.0).
+        - phase (float, optional): Phase of the sinusoid (default is 0.0).
         - start (float, optional): Start time of the sinusoid in ks (default is None).
         - end (float, optional): End time of the sinusoid in ks (default is None).
         :return: None
@@ -151,16 +152,22 @@ class LightCurve:
         except ValueError:
             print(f"{ERRR} '{args[1]}' is not a valid <amplitude> parameter{ENDC}")
             return
+
         try:
-            start = float(args[2]) if len(args) > 2 else None
+            phase = float(args[2]) if len(args) > 2 else 0.0
         except ValueError:
-            print(f"{ERRR} '{args[2]}' is not a valid <start> parameter{ENDC}")
+            print(f"{ERRR} '{args[2]}' is not a valid <phase> parameter{ENDC}")
             return
 
         try:
-            end = float(args[3]) if len(args) > 3 else None
+            start = float(args[3]) if len(args) > 3 else None
         except ValueError:
-            print(f"{ERRR} '{args[3]}' is not a valid <stop> parameter{ENDC}")
+            print(f"{ERRR} '{args[3]}' is not a valid <start> parameter{ENDC}")
+            return
+        try:
+            end = float(args[4]) if len(args) > 4 else None
+        except ValueError:
+            print(f"{ERRR} '{args[4]}' is not a valid <stop> parameter{ENDC}")
             return
 
         # Set full length if none specified
@@ -174,7 +181,7 @@ class LightCurve:
         end = np.searchsorted(self.time, end * 1E+3)
 
         # Add the sinusoid component
-        self.rate[start:end] += amp * np.sin(2 * np.pi * freq * self.time[start:end])
+        self.rate[start:end] += amp * np.sin(2 * np.pi * freq * self.time[start:end] + phase)
 
         # Ensure counts >= 0
         self.rate += np.abs(min(self.rate))

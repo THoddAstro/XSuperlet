@@ -25,9 +25,9 @@ Options
 
 Author: Thomas Hodd
 
-Date - 5th March 2026
+Date - 17th March 2026
 
-Version - 1.2.2
+Version - 1.2.3
 """
 # Set program name
 try:
@@ -577,7 +577,7 @@ class Xsuperlet:
 
         # Add sinusoid
         if comp.lower() == "sin":
-            if not (1 <= len(args) <= 4):
+            if not (1 <= len(args) <= 5):
                 print(f"{ERRR}Invalid parameters for `Add Sinusoid` component\nAdd Sinusoid: <frequency> <amplitude> <start> <stop>{ENDC}")
             else:
                 lc.add_sinusoid(*args)
@@ -1297,7 +1297,7 @@ if __name__ == "__main__":
     print(f"({round(t.time() - loadstart, 2)}s)")
     print(f"\n{BLUE}"
           "========================\n"
-          "XSuperlet         v1.2.2\n"
+          "XSuperlet         v1.2.3\n"
           "========================\n"
           f"{ENDC}")
 

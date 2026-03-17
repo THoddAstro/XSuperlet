@@ -244,10 +244,13 @@ class WaveTransform:
         self.__gap_frequency = None
 
         # Light curve simulation and significance estimation
-        self.sampler_use_kde = sim_pdf_use_kde
-        self.sampler = LightCurveSampler(self.get_pylag_lc(), kde=self.sampler_use_kde)
-        self.sim_curves = None
-        self.sim_transforms = None
+        if self.filename != "SIMULATED":
+            self.sampler_use_kde = sim_pdf_use_kde
+            self.sampler = LightCurveSampler(self.get_pylag_lc(), kde=self.sampler_use_kde)
+            self.sim_curves = None
+            self.sim_transforms = None
+        else:
+            self.sampler = None
 
         # Period diagnostic lines
         self.__period_lines = None
@@ -350,7 +353,8 @@ class WaveTransform:
         self.__limits = self.__scalogram_limits()
 
         # Recreate the sampler
-        self.sampler = LightCurveSampler(self.get_pylag_lc(), kde=self.sampler_use_kde)
+        if self.filename != "SIMULATED":
+            self.sampler = LightCurveSampler(self.get_pylag_lc(), kde=self.sampler_use_kde)
 
         print(f"{GREN}Light curve ID {self.code} updated\n"
               f"{self.timespan}s @ {self.sample_rate}μHz, {len(self.times)} samples\n{ENDC}")
@@ -601,7 +605,8 @@ class WaveTransform:
         for i, t in enumerate(self._coi):
             self._coi[i] = self.tu.seconds_to_unit(t)
 
-        self._poisson_lim = self.sampler.get_poisson_limit()
+        if self.sampler is not None:
+            self._poisson_lim = self.sampler.get_poisson_limit()
 
     def calculate_period_length(self, freq: float, location: float) -> None:
         """
