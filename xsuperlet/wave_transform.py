@@ -9,9 +9,9 @@ Uses Light curve simulation based on Timmer & Koenig (1995) and Emmanoulopoulos 
 
 Author: Thomas Hodd
 
-Date - 5th March 2026
+Date - 26th March 2026
 
-Version - 1.4
+Version - 1.5
 """
 # System packages
 import os
@@ -183,6 +183,10 @@ class WaveTransform:
         Unit to use when displaying time axes
     p_unit: str
         Unit to use when displaying the period on scalograms
+    f_unit: str
+        Unit to use for frequencies, must be selected such that all frequencies have integer values
+    f_scale: Literal["lin", "log"]
+        String denoting whether the frequency grid is formed with linear or logarthmic scaling (log by default)
 
     Attributes
     ==========
@@ -215,7 +219,7 @@ class WaveTransform:
     """
     def __init__(self, code: str | int, lightcurve: LightCurve, frequencies: np.ndarray,
                  filename: str, unit: float = 1E+0, sim_pdf_use_kde: bool = True,
-                 t_unit: str = "ks", p_unit: str = "min", f_unit: str = "μHz") -> None:
+                 t_unit: str = "ks", p_unit: str = "min", f_unit: str = "μHz", f_scale: Literal["lin", "log"] = "log",) -> None:
         # Unique identifier (set by Xsuperlet), or name (set by user)
         self.code = code
 
@@ -227,9 +231,9 @@ class WaveTransform:
 
         # Frequencies and units
         self.frequencies = frequencies
+        self.__fscale = f_scale
         self.__unit = unit
         self.__f_unit = 1 / frequency_dict[f_unit]
-        print(self.__f_unit)
         self.__f_unit_str = f_unit
         self.tu = SecondToUnit(t_unit, self.lc.start_time)
         self.pu = SecondToUnit(p_unit, self.lc.start_time)
@@ -515,7 +519,10 @@ class WaveTransform:
         wwz = WWZ(self.times * self.__unit, self.signal)
 
         # Create time and frequency grids
-        self.wwz_freq_grid = wwz.get_freq(self.__unit / self.frequencies.max(), self.__unit / self.frequencies.min(), wwz_params[0])
+        if self.__fscale == "lin":
+            self.wwz_freq_grid = np.linspace(self.frequencies.min() / self.__unit, self.frequencies.max() / self.__unit, wwz_params[0])
+        else:
+            self.wwz_freq_grid = np.logspace(np.log10(self.frequencies.min() / self.__unit), np.log10(self.frequencies.max() / self.__unit), wwz_params[0])
         self.wwz_time_grid = wwz.get_tau(self.times.min(), self.times.max(), wwz_params[1])
 
         if verbosity == 0:
@@ -1104,9 +1111,12 @@ class WaveTransform:
             return
 
         # Get slice
-        time_index = closest_index(self.times, time)
-        power = transform_data.transpose()[time_index]
-        freqs = self.frequencies
+        if transform == "WwZ" or transform == "WWA":
+            time_index = closest_index(self.tu.seconds_to_unit(self.wwz_time_grid), time)
+        else:
+            time_index = closest_index(self.times, time)
+        power = transform_data.T[time_index]
+        freqs = self.frequencies * (1 / self.__unit) * self.__f_unit
 
         # Initialise figure
         _, ax = plt.subplots(figsize=(10, 7))
@@ -1121,15 +1131,15 @@ class WaveTransform:
 
         # Set title
         if transform == "CWT":
-            ax.set_title(f"Wavelet Power @ {int(time * 1E+3)}{self.tu.unit}")
+            ax.set_title(f"Wavelet Power @ {int(time)}{self.tu.unit}")
         elif transform == "SLT":
-            ax.set_title(f"Superlet Power @ {int(time * 1E+3)}{self.tu.unit}")
+            ax.set_title(f"Superlet Power @ {int(time)}{self.tu.unit}")
         else:
-            ax.set_title(f"{transform} Power @ {int(time * 1E+3)}{self.tu.unit}")
+            ax.set_title(f"{transform} Power @ {int(time)}{self.tu.unit}")
 
         # Set axes limits
         ax.set_ylim(0.0, max(power) * 1.05)
-        ax.set_xlim(freqs[0], self.frequencies[-1])
+        ax.set_xlim(freqs[0], freqs[-1])
 
         # Find peaks
         # TODO: Duplicated code fragment
@@ -1145,9 +1155,9 @@ class WaveTransform:
         for l, r in zip(left_ips, right_ips):
             # Interpolate frequencies for the exact (fractional) bin edges
             if l < 0: l = 0
-            if r > len(self.frequencies) - 1: r = len(self.frequencies) - 1
-            f_left = np.interp(l, np.arange(len(self.frequencies)), self.frequencies)
-            f_right = np.interp(r, np.arange(len(self.frequencies)), self.frequencies)
+            if r > len(freqs) - 1: r = len(freqs) - 1
+            f_left = np.interp(l, np.arange(len(freqs)), freqs)
+            f_right = np.interp(r, np.arange(len(freqs)), freqs)
             fwhms.append(abs(f_right - f_left))
 
         # Print FWHM
@@ -1160,10 +1170,9 @@ class WaveTransform:
         # Plot COI
         if self._coi is not None:
             coi_index = closest_index(self._coi, time)
-            coi_freq = self._coi_freq[coi_index]
+            coi_freq = (self._coi_freq * (1 / self.__unit) * self.__f_unit)[coi_index]
             ax.axvline(coi_freq, color="k", linestyle="dashed", linewidth=2)
-            ax.fill_betweenx(plt.ylim(), self.frequencies[0], coi_freq,
-                             color=coi_fill[0], alpha=coi_fill[1], zorder=99, label="COI")
+            ax.fill_betweenx(plt.ylim(), freqs[0], coi_freq, color=coi_fill[0], alpha=coi_fill[1], zorder=99, label="COI")
 
         # Deal with tick formatting
         x_min, x_max = ax.get_xlim()

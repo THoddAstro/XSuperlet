@@ -25,9 +25,9 @@ Options
 
 Author: Thomas Hodd
 
-Date - 17th March 2026
+Date - 26th March 2026
 
-Version - 1.2.3
+Version - 1.2.4
 """
 # Set program name
 try:
@@ -441,12 +441,12 @@ class Xsuperlet:
             if lightcurve.load_state:
                 # Add WaveTransform object to list
                 self.__user_lightcurves.append(WaveTransform(self.__user_lightcurve_count, lightcurve, self.__frequency_grid, length_file, self.__units,
-                                                             t_unit=TIME_UNIT, p_unit=PERIOD_UNIT, f_unit=FREQ_UNIT))
+                                                             t_unit=TIME_UNIT, p_unit=PERIOD_UNIT, f_unit=FREQ_UNIT, f_scale=FREQ_BIN_SCALE))
         else:
             # Add empty light curve
             lightcurve = LightCurve(int(length_file), int(samples_rbin))
             self.__user_lightcurves.append(WaveTransform(self.__user_lightcurve_count, lightcurve, self.__frequency_grid, "SIMULATED", self.__units,
-                                                         t_unit=TIME_UNIT, p_unit=PERIOD_UNIT, f_unit=FREQ_UNIT))
+                                                         t_unit=TIME_UNIT, p_unit=PERIOD_UNIT, f_unit=FREQ_UNIT, f_scale=FREQ_BIN_SCALE))
         finally:
             self.__user_lightcurve_count += 1
 
@@ -1297,7 +1297,7 @@ if __name__ == "__main__":
     print(f"({round(t.time() - loadstart, 2)}s)")
     print(f"\n{BLUE}"
           "========================\n"
-          "XSuperlet         v1.2.3\n"
+          "XSuperlet         v1.2.4\n"
           "========================\n"
           f"{ENDC}")
 
