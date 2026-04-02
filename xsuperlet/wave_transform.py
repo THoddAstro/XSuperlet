@@ -1111,7 +1111,7 @@ class WaveTransform:
             return
 
         # Get slice
-        if transform == "WwZ" or transform == "WWA":
+        if transform == "WWZ" or transform == "WWA":
             time_index = closest_index(self.tu.seconds_to_unit(self.wwz_time_grid), time)
         else:
             time_index = closest_index(self.times, time)
