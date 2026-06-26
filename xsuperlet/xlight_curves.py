@@ -173,12 +173,13 @@ class LightCurve:
         # Set full length if none specified
         if start is None:
             start = 0
-        if end is None:
-            end = self.length
+        else:
+            start = int(start)
 
-        # Find the indices of the start and stop times
-        start = np.searchsorted(self.time, start * 1E+3)
-        end = np.searchsorted(self.time, end * 1E+3)
+        if end is None:
+            end = len(self.time)
+        else:
+            end = int(end)
 
         # Add the sinusoid component
         self.rate[start:end] += amp * np.sin(2 * np.pi * freq * self.time[start:end] + phase)

@@ -25,9 +25,9 @@ Options
 
 Author: Thomas Hodd
 
-Date - 26th March 2026
+Date - 19th June 2026
 
-Version - 1.2.4
+Version - 1.2.5
 """
 # Set program name
 try:
@@ -1132,6 +1132,8 @@ class Xsuperlet:
             data = wt.restrict_to_coi(transform)
             v_min = np.percentile(data, AUTO_SCALE_MIN)
             v_max = np.percentile(data, AUTO_SCALE_MAX)
+            if v_max == 0.0:
+                v_max = 0.1
 
         # Plot CWT
         if transform.lower() in CWT_PROXIES:
@@ -1297,7 +1299,7 @@ if __name__ == "__main__":
     print(f"({round(t.time() - loadstart, 2)}s)")
     print(f"\n{BLUE}"
           "========================\n"
-          "XSuperlet         v1.2.4\n"
+          "XSuperlet         v1.2.5\n"
           "========================\n"
           f"{ENDC}")
 

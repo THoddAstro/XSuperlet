@@ -9,9 +9,9 @@ Uses Light curve simulation based on Timmer & Koenig (1995) and Emmanoulopoulos 
 
 Author: Thomas Hodd
 
-Date - 26th March 2026
+Date - 19th June 2026
 
-Version - 1.5
+Version - 1.6
 """
 # System packages
 import os
@@ -420,7 +420,7 @@ class WaveTransform:
 
         # Frequency edges, either log or linear space
         if round(freqs[1] - freqs[0], 5) != round(freqs[-1] - freqs[-2], 5):
-            freq_edges = np.geomspace(freqs[0], freqs[-1], len(freqs) + 1)
+            freq_edges = np.geomspace(freqs[0] * self.__f_unit, freqs[-1] * self.__f_unit, len(freqs) + 1)
         else:
             d_f = np.diff(freqs).mean()
             freq_edges = np.concatenate([[(freqs[0] * self.__f_unit) - d_f / 2],
@@ -614,6 +614,8 @@ class WaveTransform:
 
         if self.sampler is not None:
             self._poisson_lim = self.sampler.get_poisson_limit()
+        else:
+            self.sampler = LightCurveSampler(self.get_pylag_lc(), kde=self.sampler_use_kde)
 
     def calculate_period_length(self, freq: float, location: float) -> None:
         """
@@ -926,7 +928,7 @@ class WaveTransform:
         :return: None
         """
         plt.figure(0, (16, 5), label="XSuperlet - Light Curve")
-        plt.scatter(self.tu.seconds_to_unit(self.times * self.__unit) + self.lc.start_time, self.signal, marker="+", color="k")
+        plt.errorbar(self.tu.seconds_to_unit(self.times * self.__unit) + self.lc.start_time, self.signal, yerr=self.lc.error, color="k", elinewidth=1, linewidth=0, marker="+")
 
         plt.xlabel(f"Time ({self.tu.unit})")
         plt.ylabel("Count Rate (Counts / s)")
@@ -1037,6 +1039,10 @@ class WaveTransform:
         ax.errorbar(self.__f_peaks_time, self.__f_peaks, yerr=self.__f_peaks_error, xerr=0, fmt="ws", markersize=6, capsize=4,)
 
         # TODO: Plot the Poisson noise limit
+        if self._poisson_lim is not None:
+            print(self._poisson_lim * self.__f_unit)
+            ax.fill_between(time_edges, self._poisson_lim * self.__f_unit, self.frequencies[-1] * (1 / self.__unit) * self.__f_unit,
+                            color=coi_fill[0], alpha=coi_fill[1])
 
         ax.set_yscale("log")
         ax.set_xlim(self.__limits[0], self.__limits[1])
@@ -1067,6 +1073,15 @@ class WaveTransform:
 
         axmin.yaxis.set_major_formatter(ticker.FuncFormatter(tick_format))
         axmin.yaxis.set_minor_formatter(ticker.FuncFormatter(tick_format))
+
+        print(f"NaN count: {np.isnan(transform_data).sum()}")
+        print(f"Inf count: {np.isinf(transform_data).sum()}")
+        print(f"Data min: {np.nanmin(transform_data)}, max: {np.nanmax(transform_data)}")
+        print(f"Data shape: {transform_data.shape}")
+        print(f"Frequency range: {freqs[0]} to {freqs[-1]}")
+        print(f"v_min: {v_min}, v_max: {v_max}")
+        if hasattr(transform_data, 'mask'):
+            print(f"Masked elements: {transform_data.mask.sum()}")
 
         # Create title
         ax.set_title(f"{self.filename}: {title}", fontweight="bold")
