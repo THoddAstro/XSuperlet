@@ -189,7 +189,6 @@ class LightCurveSampler:
         :param dft: Light curve DFT
         :return: frequencies (f_j) and PSD values (P_j)
         """
-        # TODO: Check this f_j and j_max
         j_max = len(dft)
         f_j = np.arange(1, j_max + 1, 1) / (self.length * self.tbin)
         psd = ((2 * self.tbin) / (mu ** 2 * self.nbins)) * (np.abs(dft) ** 2)

@@ -1,4 +1,32 @@
+"""
+Time unit conversion class.
+
+Author: Thomas Hodd
+
+Date - 5th March 2026
+
+Version - 1.0
+"""
 class SecondToUnit:
+    """
+    Converts between seconds and a given unit string.
+
+    Parameters
+    ==========
+    unit : str
+        The unit string to convert to seconds.
+    start: int | float
+        The start time in seconds for MJD conversion.
+
+    Attributes
+    ==========
+    unit : str
+        The unit string to convert to seconds.
+    start: int | float
+        The start time in seconds for MJD conversion.
+    time_units : dict
+        Dictionary of common time unit strings and their value in seconds.
+    """
     def __init__(self, unit: str, start: int | float) -> None:
         self.unit = unit
         self.start = start
@@ -96,6 +124,7 @@ class SecondToUnit:
             return time
 
 
+# Dictionary of frequency unit values
 frequency_dict = {
     "GHz": 1E+9,
     "MHz": 1E+6,
@@ -103,6 +132,7 @@ frequency_dict = {
     "Hz" : 1E+0,
     "mHz": 1E-3,
     "μHz": 1E-6,
+    "uHz": 1E-6,
     "nHz": 1E-9,
     "pHz": 1E-12
 }

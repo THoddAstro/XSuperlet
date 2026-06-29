@@ -220,7 +220,7 @@ class WaveTransform:
     def __init__(self, code: str | int, lightcurve: LightCurve, frequencies: np.ndarray,
                  filename: str, unit: float = 1E+0, sim_pdf_use_kde: bool = True,
                  t_unit: str = "ks", p_unit: str = "min", f_unit: str = "μHz", f_scale: Literal["lin", "log"] = "log",) -> None:
-        # Unique identifier (set by Xsuperlet), or name (set by user)
+        # Unique identifier (set by XSuperlet), or name (set by user)
         self.code = code
 
         # Light curve information
@@ -612,11 +612,6 @@ class WaveTransform:
         for i, t in enumerate(self._coi):
             self._coi[i] = self.tu.seconds_to_unit(t)
 
-        if self.sampler is not None:
-            self._poisson_lim = self.sampler.get_poisson_limit()
-        else:
-            self.sampler = LightCurveSampler(self.get_pylag_lc(), kde=self.sampler_use_kde)
-
     def calculate_period_length(self, freq: float, location: float) -> None:
         """
         Calculates the length of a period at a certain location in the scalogram.
@@ -659,7 +654,7 @@ class WaveTransform:
 
         print(f"{WARN}{cpus} processes in use{ENDC}")
         for i in range(cpus):
-            print(f"[{i}] Simulating light curve 1/{number // cpus}\n")
+            print(f"[{i}] Simulating light curve 1/{number // cpus}")
         sys.stdout.flush()
 
         # Generate simulated light curves
@@ -1038,7 +1033,7 @@ class WaveTransform:
         # Plot Frequency peak tracers
         ax.errorbar(self.__f_peaks_time, self.__f_peaks, yerr=self.__f_peaks_error, xerr=0, fmt="ws", markersize=6, capsize=4,)
 
-        # TODO: Plot the Poisson noise limit
+        # TODO: Calculate the Poisson noise limit
         if self._poisson_lim is not None:
             print(self._poisson_lim * self.__f_unit)
             ax.fill_between(time_edges, self._poisson_lim * self.__f_unit, self.frequencies[-1] * (1 / self.__unit) * self.__f_unit,
@@ -1073,15 +1068,6 @@ class WaveTransform:
 
         axmin.yaxis.set_major_formatter(ticker.FuncFormatter(tick_format))
         axmin.yaxis.set_minor_formatter(ticker.FuncFormatter(tick_format))
-
-        print(f"NaN count: {np.isnan(transform_data).sum()}")
-        print(f"Inf count: {np.isinf(transform_data).sum()}")
-        print(f"Data min: {np.nanmin(transform_data)}, max: {np.nanmax(transform_data)}")
-        print(f"Data shape: {transform_data.shape}")
-        print(f"Frequency range: {freqs[0]} to {freqs[-1]}")
-        print(f"v_min: {v_min}, v_max: {v_max}")
-        if hasattr(transform_data, 'mask'):
-            print(f"Masked elements: {transform_data.mask.sum()}")
 
         # Create title
         ax.set_title(f"{self.filename}: {title}", fontweight="bold")

@@ -25,9 +25,9 @@ Options
 
 Author: Thomas Hodd
 
-Date - 19th June 2026
+Date - 29th June 2026
 
-Version - 1.2.5
+Version - 1.2.6
 """
 # Set program name
 try:
@@ -37,6 +37,12 @@ except ModuleNotFoundError:
 else:
     setproctitle.setproctitle(f"XSuperlet")
 
+# Measure loading time
+import time as t
+
+loadstart = t.time()
+print("Loading...", end="", flush=True)
+
 # Check for command-line arguments
 import argparse
 
@@ -45,7 +51,7 @@ parser = argparse.ArgumentParser(description="Wavelet Analysis Package for (X-ra
 parser.add_argument("filename", type=str, nargs="?", help="Initial Light curve file (optional)")
 parser.add_argument("binsize", type=int, nargs="?", default=0, help="Bin size in seconds (optional)")
 parser.add_argument("-c", "--command", type=str, nargs="?", default=None, help="List of commands to execute on start")
-parser.add_argument("-p", "--processes", type=int, nargs="?", default=1, help="Number of processes to use for WWZ/A simulation (optional, default 1)")
+parser.add_argument("-p", "--processes", type=int, nargs="?", default=1, help="Number of processes to use for parallelised methods (optional, default 1)")
 
 # Parse args
 pargs = parser.parse_args()
@@ -53,12 +59,6 @@ filename = pargs.filename
 binsize = pargs.binsize
 command_file = pargs.command
 PROCESS_COUNT = pargs.processes
-
-# Measure loading time
-import time as t
-
-loadstart = t.time()
-print("Loading...", end="", flush=True)
 
 import os
 import sys
@@ -160,9 +160,9 @@ if PROCESS_COUNT > 1:
     print(f"{WARN}Parallel processes set to use {PROCESS_COUNT} CPUs!{ENDC}")
 
 
-class Xsuperlet:
+class XSuperlet:
     """
-    Xsuperlet instance.
+    XSuperlet instance.
 
     Interface for performing wavelet/superlet analysis of AGN light curves.
     For list of commands type "help"
@@ -1299,12 +1299,12 @@ if __name__ == "__main__":
     print(f"({round(t.time() - loadstart, 2)}s)")
     print(f"\n{BLUE}"
           "========================\n"
-          "XSuperlet         v1.2.5\n"
+          "XSuperlet         v1.2.6\n"
           "========================\n"
           f"{ENDC}")
 
     # Initialise instance
-    root = Xsuperlet()
+    root = XSuperlet()
 
     # Set up tab completion
     readline.set_completer(root.line_completion)

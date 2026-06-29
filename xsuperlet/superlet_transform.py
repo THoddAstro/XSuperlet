@@ -12,6 +12,10 @@ Likewise, a wavelet/superlet transform is a SuperletTransform object. CWTs are S
 e.g. a superlet with a single Morlet wavelet with c_1 cycles.
 
 Author: Thomas Hodd
+
+Date - 24th August 2025
+
+Version - 1.0
 """
 import numpy as np
 from numpy import pi
