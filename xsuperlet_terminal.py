@@ -25,9 +25,9 @@ Options
 
 Author: Thomas Hodd
 
-Date - 29th June 2026
+Date - 30th June 2026
 
-Version - 1.2.6
+Version - 1.2.7
 """
 # Set program name
 try:
@@ -341,6 +341,7 @@ class XSuperlet:
 
     @staticmethod
     def _help(func: Callable) -> Callable | None:
+        @functools.wraps(func)
         def __fetch_help_wrapper(parent, *args, **kwargs) -> Callable | None:
             """
             Prints the docstring instead of calling the method when "?" is passed.
@@ -362,7 +363,8 @@ class XSuperlet:
 
         :return: None
         """
-        print([key for key in self.command_index])
+        for key in self.command_index:
+            print(f"{CYAN}{key}{ENDC}\n{self.command_index[key].__doc__.split("\n")[1]}")
 
     @_help
     def print_traceback(self) -> None:
@@ -1299,7 +1301,7 @@ if __name__ == "__main__":
     print(f"({round(t.time() - loadstart, 2)}s)")
     print(f"\n{BLUE}"
           "========================\n"
-          "XSuperlet         v1.2.6\n"
+          "XSuperlet         v1.2.7\n"
           "========================\n"
           f"{ENDC}")
 
